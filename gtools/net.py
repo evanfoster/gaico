@@ -27,7 +27,7 @@ def getaddrinfo(hosts, port, family=0, socktype=0, proto=0, flags=0):
 
 
 def ping(hosts, timeout=10, count=10, packet_size=64, interval=1, deadline=None):
-    """ Ping `hosts`.
+    """ Pure Python implementation of the ping command.
 
     :param hosts: hosts to ping (ip addresses or hostnames)
     :param timeout: timeout in second for a single ping round trip (default: 10)
