@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 
 from setuptools import setup, find_packages
-from gtools import __version__ as version
+from gaico import __version__ as version
 
 
 setup(
-    name='gtools',
+    name='gaico',
     version=version,
-    description='gevent tools',
+    description='A set of network tools written in pure Python with gevent.',
     long_description=__doc__,
     author='Laurent Meunier',
     author_email='laurent@deltalima.net',
