@@ -12,12 +12,11 @@
 """
 
 from setuptools import setup, find_packages
-from gaico import __version__ as version
 
 
 setup(
     name='gaico',
-    version=version,
+    version='0.1.0',
     description='A set of network tools written in pure Python with gevent.',
     long_description=__doc__,
     author='Laurent Meunier',
