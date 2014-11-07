@@ -22,7 +22,7 @@ Installation
 
 .. code:: bash
 
-   TODO
+   pip install gaico
 
 - from Git:
 
@@ -32,11 +32,20 @@ Installation
     cd gaico
     python setup.py install
 
-Documentation
--------------
+Functions
+---------
 
-TODO
+- ``gaico.net.ping``: Ping multiple hosts concurrently.
+- ``gaico.net.getaddrinfo``: Same as ``gevent.socket.getaddrinfo`` except that
+  you can pass multiple hosts.
 
+To view detailed help on a particular function, use the ``help()`` Python
+built-in function.
+
+.. code:: python
+
+    from gaico.net import ping
+    help(ping)
 
 Credits
 -------
