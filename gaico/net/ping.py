@@ -7,38 +7,92 @@ from gevent import select, sleep, socket
 from gaico.net import getaddrinfo
 
 
-ICMP_ECHO_REQUEST = 8
+ICMPV4_ECHO_REQUEST = 8
 ICMPV6_ECHO_REQUEST = 128
 
 
-def checksum(source_string):
-    sum = 0
-    count_to = int((len(source_string) / 2) * 2)
-    for count in xrange(0, count_to, 2):
-        this = ord(source_string[count + 1]) * 256 + ord(source_string[count])
-        sum = sum + this
-        sum = sum & 0xFFFFFFFF
+class PingPacket(object):
+    """ Object representing an PING packet. """
 
-    if count_to < len(source_string):
-        sum = sum + ord(source_string[len(source_string) - 1])
-        sum = sum & 0xFFFFFFFF
+    def __init__(self, identifier, sequence, payload, ipv6=False):
+        """ Create a PING packet with default values. """
 
-    sum = (sum >> 16) + (sum & 0xFFFF)
-    sum = sum + (sum >> 16)
-    answer = ~sum
-    answer = answer & 0xFFFF
+        # ICMP v4 or v6
+        self.message_type = ICMPV4_ECHO_REQUEST
+        if ipv6:
+            self.message_type = ICMPV6_ECHO_REQUEST
 
-    return answer
+        # the code is always 0 for ICMP echo packets
+        self.code = 0
+
+        self.identifier = identifier
+        self.sequence = sequence
+        self.payload = payload
+        self.ipv6 = ipv6
+
+    def pack(self, checksum=None):
+        """ Create the packet. """
+
+        if checksum is None:
+            checksum = self.checksum
+
+        # header is type (8), code (8), checksum (16), id (16), sequence (16)
+        header = struct.pack(
+            "!BBHHH", self.message_type, self.code, checksum, self.identifier, self.sequence
+        )
+
+        return header + self.payload
+
+    @property
+    def checksum(self):
+        """ Compute the checksum. """
+
+        # get a dummy packet with a 0 checksum
+        packet = self.pack(checksum=0)
+
+        if len(packet) % 2 == 1:
+            # padding to have an even number of bytes
+            packet = packet + '\0'
+
+        checksum = 0
+        for count in xrange(0, len(packet), 2):
+            value, = struct.unpack("!H", packet[count:count+2])
+            checksum = checksum + value
+
+        checksum = (checksum >> 16) + (checksum & 0xFFFF)
+        checksum = checksum + (checksum >> 16)
+        checksum = ~checksum
+        checksum = checksum & 0xFFFF
+
+        return checksum
+
+    @classmethod
+    def fromdata(cls, data, ipv6=False):
+        """ Create a PingPacket object from `data`. """
+
+        header_offset = 20
+        if ipv6:
+            header_offset = 0
+        payload_offset = header_offset + 8
+
+        icmp_header = data[header_offset:payload_offset]
+        message_type, code, checksum, identifier, sequence = struct.unpack(
+            "!BBHHH", icmp_header
+        )
+
+        payload = data[payload_offset:]
+
+        packet = cls(identifier, sequence, payload, ipv6)
+        return packet
 
 
 def receive_one_ping(my_socket, addr_info, identifier, sequence, timeout):
     """ Wait for a ping reply from `host`. """
 
     host = addr_info[4][0]
-    header_offset = 20
-    if my_socket.family == socket.AF_INET6:
-        header_offset = 0
-    data_offset = header_offset + 8
+
+    # is ipv6?
+    ipv6 = my_socket.family == socket.AF_INET6
 
     time_left = timeout
     while True:
@@ -51,17 +105,18 @@ def receive_one_ping(my_socket, addr_info, identifier, sequence, timeout):
 
         time_received = time.time()
         received_packet, addr = my_socket.recvfrom(1024)
-        icmp_header = received_packet[header_offset:data_offset]
-        message_type, code, checksum, recv_identifier, recv_sequence = struct.unpack(
-            "!BBHHH", icmp_header
-        )
 
-        if recv_identifier == identifier and recv_sequence == sequence and addr[0] == host:
+        # contruct a PING packet
+        packet = PingPacket.fromdata(received_packet, ipv6)
+
+        # is this the reply we are looking for?
+        if packet.identifier == identifier and packet.sequence == sequence and addr[0] == host:
+            # extract the timestamp from the payload
             bytes_size = struct.calcsize("d")
-            time_sent = struct.unpack(
+            time_sent, = struct.unpack(
                 "!d",
-                received_packet[data_offset:data_offset + bytes_size]
-            )[0]
+                packet.payload[0:bytes_size]
+            )
             return time_received - time_sent
 
         time_left = time_left - how_long_in_select
@@ -71,33 +126,21 @@ def receive_one_ping(my_socket, addr_info, identifier, sequence, timeout):
 
 
 def send_one_ping(my_socket, addr_info, identifier, sequence, packet_size):
-    """ Send one ping request to `address`. """
+    """ Send one ping request the given `addr_info`. """
 
-    # Header is type (8), code (8), checksum (16), id (16), sequence (16)
-    my_checksum = 0
-
-    icmp_type = ICMP_ECHO_REQUEST
-    if my_socket.family == socket.AF_INET6:
-        icmp_type = ICMPV6_ECHO_REQUEST
-
-    # Make a dummy heder with a 0 checksum.
-    header = struct.pack(
-        "!BBHHH", icmp_type, 0, my_checksum, identifier, sequence
-    )
+    # add the current timestamp in the payload
     bytes_size = struct.calcsize("d")
-    data = ((packet_size - 8) - bytes_size) * "Q"
-    data = struct.pack("!d", time.time()) + data
+    payload = ((packet_size - 8) - bytes_size) * "Q"
+    payload = struct.pack("!d", time.time()) + payload
 
-    # Calculate the checksum on the data and the dummy header.
-    my_checksum = checksum(header + data)
+    # is ipv6?
+    ipv6 = my_socket.family == socket.AF_INET6
 
-    # Now that we have the right checksum, we put that in. It's just easier
-    # to make up a new header than to stuff it into the dummy.
-    header = struct.pack(
-        "!BBHHH", icmp_type, 0, socket.htons(my_checksum), identifier, sequence
-    )
-    packet = header + data
-    my_socket.sendto(packet, addr_info[4])
+    # our PING packet
+    packet = PingPacket(identifier, sequence, payload, ipv6)
+
+    # send the packet on the wire
+    my_socket.sendto(packet.pack(), addr_info[4])
 
 
 def do_one_ping(addr_info, identifier, sequence, timeout, packet_size):
