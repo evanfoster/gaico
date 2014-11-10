@@ -182,14 +182,12 @@ def ping_worker(addr_info, timeout, count, packet_size, interval, deadline):
         deadline_time = time.time() + deadline
 
     identifier = int(time.time() * 1000000) & 0xFFFF
-    sequence = 1
 
     sent_packets = 0
-    for i in xrange(count):
+    for sequence in xrange(count):
         time_ping_sent = time.time()
         delay = do_one_ping(addr_info, identifier, sequence, timeout, packet_size)
 
-        sequence = sequence + 1
         sent_packets = sent_packets + 1
 
         if delay is not None:
