@@ -211,7 +211,7 @@ def ping_worker(addr_info, timeout, count, packet_size, interval, deadline):
 
     return {
         'host': addr_info[4][0],
-        'send': sent_packets,
+        'sent': sent_packets,
         'received': len(replies),
         'minping': minping,
         'maxping': maxping,
@@ -238,7 +238,6 @@ def ping(hosts, timeout=10, count=10, packet_size=64, interval=1, deadline=None)
         `minping`: *float*; the minimum (fastest) round trip ping request/reply time in seconds
         `avgping`: *float*; the average round trip ping time in seconds
         `maxping`: *float*; the maximum (slowest) round trip ping time in seconds
-        `packet_size`: *int*; the number of data bytes sent
         `packet_loss`: *float*; percentage of lost packets
     """
 
