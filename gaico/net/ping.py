@@ -169,7 +169,7 @@ def do_one_ping(addr_info, identifier, sequence, timeout, packet_size):
     return delay
 
 
-def ping_worker(addr_info, count, timeout, packet_size, interval, deadline):
+def ping_worker(addr_info, timeout, count, packet_size, interval, deadline):
     """ Worker that is run for each host. Concurrency is handled by gevent. """
 
     minping = None
