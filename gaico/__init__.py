@@ -12,3 +12,8 @@
 """
 
 __version__ = '0.1.0'
+
+
+class GaicoException(Exception):
+    """ Base Exception class for all exceptions raised by Gaico functions. """
+    pass

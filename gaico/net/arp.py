@@ -4,6 +4,7 @@ import gevent
 import struct
 import time
 from gevent import select, socket
+from gaico import GaicoException
 from gaico.net import getaddrinfo
 
 """
@@ -15,6 +16,11 @@ ARP_REQUEST = struct.pack('!H', 0x0001)
 ARP_REPLY = struct.pack('!H', 0x0002)
 
 
+class ARPTimeoutException(GaicoException):
+    """ Raised when no reply are received after the given timeout. """
+    pass
+
+
 def receive_reply(my_socket, source_ip, destination_ip, timeout):
     """ Wait for an ARP Reply. """
     time_left = timeout
@@ -24,7 +30,7 @@ def receive_reply(my_socket, source_ip, destination_ip, timeout):
         how_long_in_select = (time.time() - started_select)
         if what_ready[0] == []:
             # timeout
-            return
+            return ARPTimeoutException()
 
         # read from the socket
         frame, addr = my_socket.recvfrom(1024)
@@ -32,7 +38,7 @@ def receive_reply(my_socket, source_ip, destination_ip, timeout):
         time_left = time_left - how_long_in_select
         if time_left <= 0:
             # timeout
-            return
+            return ARPTimeoutException()
 
         if frame[12:14] != ARP_PROTO:
             # not an ARP packet
@@ -123,7 +129,7 @@ def arp_request(hosts, source, interface, timeout=10):
     :param timeout: how many seconds to wait for a reply (default: 10)
 
     Returns a dictionary with hosts as keys and the MAC address of the host or
-    `None` if no replies are received.
+    an Exception.
     """
 
     addresses_info = getaddrinfo(hosts, None, socket.AF_INET)
@@ -136,7 +142,7 @@ def arp_request(hosts, source, interface, timeout=10):
     failures = {}
     for host in hosts:
         addr_info = addresses_info[host]
-        if addr_info is None or isinstance(addr_info, Exception):
+        if isinstance(addr_info, Exception):
             failures[host] = addr_info
             continue
         jobs.append(gevent.spawn(arp_worker, addr_info[0], src_addr_info[0], interface,
