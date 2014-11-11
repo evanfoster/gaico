@@ -231,7 +231,7 @@ def ping(hosts, timeout=10, count=10, packet_size=64, interval=1, deadline=None)
     :param deadline: timeout in second, before `ping` returns regardless of how
     many packets have been sent or received (default: no deadline)
 
-    Returns a dictionary for each host with the following fields:
+    Returns an Exception or a dictionary for each host with the following fields:
         `host`: *string*; the IP address used to ping the target
         `sent`: *int*; the number of ping request packets sent
         `received`: *int*; the number of ping reply packets received
