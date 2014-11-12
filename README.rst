@@ -7,7 +7,7 @@ Overview
 Gaico is a collection of small useful functions. Nothing fancy or
 revolutionary, just little things I use in several projects. The primary goal
 of this package is to provide pure python implementations of network tools
-(like ping).
+(like ping or ARP).
 
 Requirements
 ------------
@@ -38,6 +38,8 @@ Functions
 - ``gaico.net.ping``: Ping multiple hosts concurrently.
 - ``gaico.net.getaddrinfo``: Same as ``gevent.socket.getaddrinfo`` except that
   you can pass multiple hosts.
+- ``gaico.net.arp_request``: Send ARP request for multiple hosts concurrently.
+- ``gaico.net.check_ports_state``: Check if TCP ports are open on given hosts.
 
 To view detailed help on a particular function, use the ``help()`` Python
 built-in function.
