@@ -27,7 +27,7 @@ setup(
     zip_safe=False,
     install_requires=['gevent==1.0.1'],
     classifiers=[
-        'Development Status :: 5 - Production/Stable',
+        'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
         'Operating System :: OS Independent',
