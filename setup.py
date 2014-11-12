@@ -16,7 +16,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='gaico',
-    version='0.1.0',
+    version='0.2.0',
     description='A set of network tools written in pure Python with gevent.',
     long_description=__doc__,
     author='Laurent Meunier',
