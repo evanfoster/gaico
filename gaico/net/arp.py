@@ -88,7 +88,7 @@ def send_request(my_socket, destination_ip, source_ip, interface):
     my_socket.send(''.join(arpframe))
 
 
-def arp_worker(destination, source, interface, timeout):
+def arp_worker(destination, source, interface, timeout, count):
     """ Worker that is run for each host. Concurrency is handled by gevent. """
 
     if destination[0] != source[0]:
@@ -114,19 +114,24 @@ def arp_worker(destination, source, interface, timeout):
 
     my_socket.bind((interface, socket.SOCK_RAW))
 
-    send_request(my_socket, destination_ip, source_ip, interface)
-    mac_address = receive_reply(my_socket, source_ip, destination_ip, timeout)
+    for i in xrange(count):
+        send_request(my_socket, destination_ip, source_ip, interface)
+        mac_address = receive_reply(my_socket, source_ip, destination_ip, timeout)
+
+        if not isinstance(mac_address, Exception):
+            return mac_address
 
     return mac_address
 
 
-def arp_request(hosts, source, interface, timeout=10):
+def arp_request(hosts, source, interface, timeout=10, count=1):
     """ Pure Python implementation of ARP request.
 
     :param hosts: targets of the ARP requests (ip address or hostname)
     :param source: the source of the ARP request (ip address or hostname)
     :param interface: the name of the network interface where the ARP request will be sent
     :param timeout: how many seconds to wait for a reply (default: 10)
+    :param count: maximum number of ARP requests to send, stops after the first reply (default: 1)
 
     Returns a dictionary with hosts as keys and the MAC address of the host or
     an Exception.
@@ -146,7 +151,7 @@ def arp_request(hosts, source, interface, timeout=10):
             failures[host] = addr_info
             continue
         jobs.append(gevent.spawn(arp_worker, addr_info[0], src_addr_info[0], interface,
-                                 timeout))
+                                 timeout, count))
     gevent.joinall(jobs)
 
     arp_results = [job.value for job in jobs]
