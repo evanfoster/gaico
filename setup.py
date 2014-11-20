@@ -26,6 +26,7 @@ setup(
     include_package_data=True,
     zip_safe=False,
     install_requires=['gevent==1.0.1'],
+    test_suite="tests",
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
