@@ -67,20 +67,19 @@ class PingPacket(object):
         return checksum
 
     @classmethod
-    def fromdata(cls, data, ipv6=False):
+    def fromdata(cls, data):
         """ Create a PingPacket object from `data`. """
 
-        header_offset = 20
-        if ipv6:
-            header_offset = 0
-        payload_offset = header_offset + 8
-
-        icmp_header = data[header_offset:payload_offset]
+        payload_offset = 8
+        icmp_header = data[0:payload_offset]
         message_type, code, checksum, identifier, sequence = struct.unpack(
             "!BBHHH", icmp_header
         )
 
         payload = data[payload_offset:]
+
+        # ICMP v4 or v6
+        ipv6 = message_type == ICMPV6_ECHO_REQUEST
 
         packet = cls(identifier, sequence, payload, ipv6)
         return packet
@@ -106,8 +105,12 @@ def receive_one_ping(my_socket, addr_info, identifier, sequence, timeout):
         time_received = time.time()
         received_packet, addr = my_socket.recvfrom(1024)
 
+        if not ipv6:
+            # IP header is included only with IPv4 (remove it)
+            received_packet = received_packet[20:]
+
         # contruct a PING packet
-        packet = PingPacket.fromdata(received_packet, ipv6)
+        packet = PingPacket.fromdata(received_packet)
 
         # is this the reply we are looking for?
         if packet.identifier == identifier and packet.sequence == sequence and addr[0] == host:
