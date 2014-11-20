@@ -1,6 +1,9 @@
 Gaico
 =====
 
+.. image:: https://travis-ci.org/lmeunier/gaico.svg?branch=master
+    :target: https://travis-ci.org/lmeunier/gaico
+
 Overview
 --------
 
