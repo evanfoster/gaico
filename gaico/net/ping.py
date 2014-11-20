@@ -47,6 +47,11 @@ class PingPacket(object):
     def checksum(self):
         """ Compute the checksum. """
 
+        if self.ipv6:
+            # ICMPv6 has the IP stack calculate the checksum for us
+            # just returns 0
+            return 0
+
         # get a dummy packet with a 0 checksum
         packet = self.pack(checksum=0)
 
