@@ -60,7 +60,7 @@ class PingPacket(object):
             packet = packet + '\0'
 
         checksum = 0
-        for count in xrange(0, len(packet), 2):
+        for count in range(0, len(packet), 2):
             value, = struct.unpack("!H", packet[count:count+2])
             checksum = checksum + value
 
@@ -160,14 +160,9 @@ def do_one_ping(addr_info, identifier, sequence, timeout, packet_size):
 
     try:
         my_socket = socket.socket(addr_info[0], socket.SOCK_RAW, icmp)
-    except socket.error, (errno, msg):
-        if errno == 1:
-            # Operation not permitted
-            msg = msg + " - Note that ICMP messages can only by sent from processes running " \
-                "as root."
-            raise socket.error(msg)
-        # raise the original error
-        raise
+    except PermissionError:
+        msg = "ARP requests can only be sent from processes running as root."
+        raise PermissionError(msg)
 
     send_one_ping(my_socket, addr_info, identifier, sequence, packet_size)
     delay = receive_one_ping(my_socket, addr_info, identifier, sequence, timeout)
@@ -192,7 +187,7 @@ def ping_worker(addr_info, timeout, count, packet_size, interval, deadline):
     identifier = int(time.time() * 1000000) & 0xFFFF
 
     sent_packets = 0
-    for sequence in xrange(count):
+    for sequence in range(count):
         time_ping_sent = time.time()
         delay = do_one_ping(addr_info, identifier, sequence, timeout, packet_size)
 

@@ -25,7 +25,7 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     zip_safe=False,
-    install_requires=['gevent==1.0.1'],
+    install_requires=['gevent>=1.1.0'],
     test_suite="tests",
     classifiers=[
         'Development Status :: 4 - Beta',

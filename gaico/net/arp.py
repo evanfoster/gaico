@@ -58,7 +58,7 @@ def receive_reply(my_socket, source_ip, destination_ip, timeout):
         )
 
         if src_ip == destination_ip and dst_ip == source_ip:
-            return src_hw
+            return src_hw.hex()
 
 
 def send_request(my_socket, destination_ip, source_ip, interface):
@@ -66,7 +66,7 @@ def send_request(my_socket, destination_ip, source_ip, interface):
     bcast_mac = struct.pack('!6B', *[0xFF]*6)
     source_mac = my_socket.getsockname()[4]
     destination_mac = struct.pack('!6B', *[0x00]*6)
-
+    print(destination_ip)
     arpframe = [
         # Ethernet
         bcast_mac,
@@ -82,10 +82,10 @@ def send_request(my_socket, destination_ip, source_ip, interface):
         source_mac,
         source_ip,
         destination_mac,
-        destination_ip,
+        destination_ip
     ]
 
-    my_socket.send(''.join(arpframe))
+    my_socket.send(b''.join(arpframe))
 
 
 def arp_worker(destination, source, interface, timeout, count):
@@ -101,20 +101,14 @@ def arp_worker(destination, source, interface, timeout, count):
 
     try:
         my_socket = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.SOCK_RAW)
-    except socket.error, (errno, msg):
-        if errno == 1:
-            # Operation not permitted
-            msg = msg + (
-                " - Note that ARP requests can only be sent from processes"
-                " running as root."
-            )
-            raise socket.error(msg)
-        # raise the original error
-        raise
+    except PermissionError:
+            msg = "ARP requests can only be sent from processes running as root."
+
+            raise PermissionError(msg)
 
     my_socket.bind((interface, socket.SOCK_RAW))
 
-    for i in xrange(count):
+    for i in range(count):
         send_request(my_socket, destination_ip, source_ip, interface)
         mac_address = receive_reply(my_socket, source_ip, destination_ip, timeout)
 
@@ -139,7 +133,6 @@ def arp_request(hosts, source, interface, timeout=10, count=1):
 
     addresses_info = getaddrinfo(hosts, None, socket.AF_INET)
     src_addr_info = getaddrinfo([source], None, socket.AF_INET)[source]
-
     if isinstance(src_addr_info, Exception):
         raise src_addr_info
 

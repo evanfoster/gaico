@@ -15,8 +15,8 @@ of this package is to provide pure python implementations of network tools
 Requirements
 ------------
 
-- Python 2.7
-- gevent 1.0.1
+- Python 3.5
+- gevent 1.1.0
 
 Installation
 ------------
